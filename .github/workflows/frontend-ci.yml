@@ -1,0 +1,26 @@
+name: Frontend CI
+'on':
+  pull_request: {}
+  push:
+    branches:
+    - master
+permissions:
+  contents: read
+jobs:
+  test-build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      with:
+        persist-credentials: false
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: 10.24.1
+    - name: Install locked dependencies
+      run: npm ci --no-audit
+    - name: Test and build
+      run: |
+        CHROME_BIN=/usr/bin/google-chrome npm test -- --watch=false --progress=false --karma-config=.github/karma-ci.js
+        npm run build -- --progress=false --output-path="$RUNNER_TEMP/fleetman-dist"
+        git diff --check
