@@ -6,21 +6,30 @@ name: Forward agent-ready approval
 permissions: {}
 jobs:
   forward:
-    if: github.event.label.name == 'agent-ready' && github.event.issue.state == 'open'
+    # agent-ready starts execution; needs-spec starts planning. Every other label is ignored.
+    if: (github.event.label.name == 'agent-ready' || github.event.label.name == 'needs-spec') && github.event.issue.state == 'open'
     runs-on: ubuntu-22.04
     timeout-minutes: 2
     steps:
-    - name: Start the central controller for this issue
-      # The controller re-verifies enrollment, issue state, the approval event
-      # and the approver's write permission; this job only says where to look.
+    - name: Start the central workflow for this issue
+      # The central workflow re-verifies enrollment, issue state, the label event
+      # and the labeller's write permission; this job only says where to look.
       env:
         GH_TOKEN: ${{ secrets.ORCHESTRATOR_DISPATCH_TOKEN }}
         REPOSITORY: ${{ github.repository }}
         ISSUE: ${{ github.event.issue.number }}
+        LABEL: ${{ github.event.label.name }}
       run: |-
-        gh api --method POST \
-          repos/odwadev/agent-orchestrator/actions/workflows/approval-controller.yml/dispatches \
-          -f ref=main \
-          -f "inputs[repository]=$REPOSITORY" \
-          -f "inputs[issue]=$ISSUE" \
-          -f "inputs[dry_run]=false"
+        dispatch() {
+          gh api --method POST \
+            "repos/odwadev/agent-orchestrator/actions/workflows/$1/dispatches" \
+            -f ref=main \
+            -f "inputs[repository]=$REPOSITORY" \
+            -f "inputs[issue]=$ISSUE" \
+            "${@:2}"
+        }
+        case "$LABEL" in
+          agent-ready) dispatch approval-controller.yml -f "inputs[dry_run]=false" ;;
+          needs-spec) dispatch plan.yml ;;
+          *) echo "Unexpected label" >&2; exit 1 ;;
+        esac
