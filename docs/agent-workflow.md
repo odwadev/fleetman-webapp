@@ -1,6 +1,8 @@
 # Issue-to-PR automation
 
-This pilot supports approved fixes to existing `src/**/*.spec.ts` files. Start with issue #1. Application changes, new files, dependency changes, and workflow changes are outside the pilot scope.
+The workflow supports approved frontend tasks: add, modify, or delete regular `.ts`, `.html`, and `.css` files under `src/app/`, and edit `src/styles.css`. This includes components, services, templates, styles, and unit tests. New files are included in the exported patch.
+
+Dependencies, lockfiles, workflow files, deployment files, environment configuration, other entry points, and tracked dist outputs remain outside scope. Such tasks need a separate infrastructure or configuration PR. The agent must report the limitation instead of bypassing it. No-change results, changes outside scope, symlinks, and agent-created commits stop the run before validation.
 
 ## One-time setup
 
@@ -11,7 +13,7 @@ This pilot supports approved fixes to existing `src/**/*.spec.ts` files. Start w
 
 ## Execution
 
-The workflow installs locked dependencies, then runs Codex with read-only GitHub permissions. It exports only modifications to existing test files. A fresh job checks out the same starting commit, applies the patch, installs dependencies, and runs headless tests and a production build. Only successful validation enables a separate job with permissions to create a draft PR.
+The workflow installs locked dependencies, then runs Codex with read-only GitHub permissions. It checks the changed file paths and exports the allowed source changes, including new files and deletions. A fresh job checks out the same starting commit, applies the patch, installs dependencies, and runs headless tests and a production build. Only successful validation enables a separate job with permissions to create a draft PR.
 
 Actions run on GitHub-hosted machines, not the Codex cloud snapshot. Node 10.24.1 supports the legacy Angular application; Node 22 supports Codex. The browser configuration uses the runner's Chrome and writes production outputs outside tracked dist files.
 
@@ -19,8 +21,8 @@ Open Actions → Fleetman issue agent to inspect progress. On success, review th
 
 ## CI and review
 
-Frontend CI runs on ordinary pull requests and pushes to master. The current baseline has six failing tests; the infrastructure PR will expose these until issue #1 fixes them. Do not remove assertions to make this setup PR green.
+Frontend CI runs on ordinary pull requests and pushes to master. Issue #1 fixed the original six failures; all seven original tests passed. Future behavior changes must retain useful coverage and add or update tests where needed. Do not remove assertions just to make a change pass.
 
 PRs opened using GITHUB_TOKEN do not normally trigger another pull_request workflow. The agent workflow therefore validates before opening the PR. Subsequent human pushes trigger normal PR CI. If branch protection requires Frontend CI, a maintainer must arrange that check to run on the generated PR (for example, close and reopen the PR as a human); do not bypass required checks. A future GitHub App integration can remove this limitation.
 
-Move the issue to In Progress when starting a run and In Review when the draft PR is ready. Board transitions are manual in this pilot. Review actual changes and validation before merging; never treat a successful agent summary as proof of CI completion.
+Move the issue to In Progress when starting a run; use In Review if your board has that column. The project currently moves closed issues to Done automatically. Merging a PR with its Closes reference closes the linked issue. Other board transitions are not performed by this workflow. Review actual changes and validation before merging; never treat a successful agent summary as proof of CI completion.

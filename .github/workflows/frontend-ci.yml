@@ -17,6 +17,8 @@ jobs:
     - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
       with:
         node-version: 10.24.1
+    - name: Test agent patch scope
+      run: python3 .github/tests/test_agent_scope.py
     - name: Install locked dependencies
       run: npm ci --no-audit
     - name: Test and build
