@@ -1,0 +1,26 @@
+name: Forward agent-ready approval
+# Reviewed central template. Copy unchanged into each enrolled repository.
+'on':
+  issues:
+    types: [labeled]
+permissions: {}
+jobs:
+  forward:
+    if: github.event.label.name == 'agent-ready' && github.event.issue.state == 'open'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 2
+    steps:
+    - name: Start the central controller for this issue
+      # The controller re-verifies enrollment, issue state, the approval event
+      # and the approver's write permission; this job only says where to look.
+      env:
+        GH_TOKEN: ${{ secrets.ORCHESTRATOR_DISPATCH_TOKEN }}
+        REPOSITORY: ${{ github.repository }}
+        ISSUE: ${{ github.event.issue.number }}
+      run: |-
+        gh api --method POST \
+          repos/odwadev/agent-orchestrator/actions/workflows/approval-controller.yml/dispatches \
+          -f ref=main \
+          -f "inputs[repository]=$REPOSITORY" \
+          -f "inputs[issue]=$ISSUE" \
+          -f "inputs[dry_run]=false"
